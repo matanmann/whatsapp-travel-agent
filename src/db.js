@@ -9,6 +9,27 @@ const DATABASE_URL_KEYS = [
   'POSTGRES_URL_NON_POOLING',
 ];
 
+const buildDatabaseUrlFromParts = () => {
+  const host = process.env.PGHOST;
+  const port = process.env.PGPORT;
+  const user = process.env.PGUSER;
+  const password = process.env.PGPASSWORD;
+  const database = process.env.PGDATABASE;
+
+  if (!host || !port || !user || !password || !database) {
+    return null;
+  }
+
+  const url = new URL('postgresql://localhost');
+  url.hostname = host;
+  url.port = String(port);
+  url.username = user;
+  url.password = password;
+  url.pathname = `/${database}`;
+
+  return url.toString();
+};
+
 const isLocalPostgresUrl = (value) => {
   if (!value) return false;
 
@@ -21,9 +42,14 @@ const isLocalPostgresUrl = (value) => {
 };
 
 const resolveDatabaseUrl = () => {
+  const derivedDatabaseUrl = buildDatabaseUrlFromParts();
   const candidates = DATABASE_URL_KEYS
     .map((key) => [key, process.env[key]])
     .filter(([, value]) => Boolean(value));
+
+  if (derivedDatabaseUrl) {
+    candidates.unshift(['PG*', derivedDatabaseUrl]);
+  }
 
   const preferred = candidates.find(([, value]) => !isLocalPostgresUrl(value));
   const selected = preferred || candidates[0];
@@ -46,7 +72,16 @@ const resolveDatabaseUrl = () => {
   return { sourceKey, databaseUrl };
 };
 
-const { sourceKey } = resolveDatabaseUrl();
+const { sourceKey, databaseUrl } = resolveDatabaseUrl();
+
+const safeDatabaseTarget = (() => {
+  try {
+    const parsed = new URL(databaseUrl);
+    return `${parsed.hostname}:${parsed.port || '5432'}`;
+  } catch {
+    return 'unparseable';
+  }
+})();
 
 const globalForPrisma = globalThis;
 
@@ -55,7 +90,7 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
 });
 
 if (process.env.NODE_ENV !== 'test') {
-  console.log(`Prisma database URL resolved from ${sourceKey}`);
+  console.log(`Prisma database URL resolved from ${sourceKey} -> ${safeDatabaseTarget}`);
 }
 
 if (process.env.NODE_ENV !== 'production') {
