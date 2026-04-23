@@ -1,7 +1,9 @@
 import express from 'express';
-import { twiml } from 'twilio';
+import twilio from 'twilio';
 import { validateTwilioSignature, parseIncomingMessage, sendWhatsAppMessage } from '../services/whatsapp.js';
 import { handleMessage } from '../services/messageHandler.js';
+
+const { twiml } = twilio;
 
 const router = express.Router();
 
