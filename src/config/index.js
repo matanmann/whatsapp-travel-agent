@@ -13,6 +13,12 @@ const parseAllowedPhones = (value) =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+const parseAllowedOrigins = (value) =>
+  (value || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
 const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: toInt(process.env.PORT, 3000),
@@ -36,6 +42,7 @@ const config = {
     maxMessageLength: toInt(process.env.MAX_MESSAGE_LENGTH, 2000),
     allowedPhones: parseAllowedPhones(process.env.ALLOWED_PHONES),
     blockPromptInjection: (process.env.BLOCK_PROMPT_INJECTION || 'true') === 'true',
+    allowedOrigins: parseAllowedOrigins(process.env.ALLOWED_ORIGINS),
   },
   reminderCron: process.env.REMINDER_CRON || '*/10 * * * *',
 };

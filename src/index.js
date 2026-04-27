@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
@@ -40,6 +41,27 @@ app.use(
 
 app.use(securityHeaders);
 app.use(morgan(':method :url :status :response-time ms'));
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow non-browser clients and server-to-server traffic.
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (config.security.allowedOrigins.length === 0) {
+      return callback(null, true);
+    }
+
+    if (config.security.allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('CORS origin not allowed'));
+  },
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 app.use(express.json({ limit: '50kb' }));
